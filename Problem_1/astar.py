@@ -14,7 +14,7 @@ class AStar(object):
         self.x_goal = self.snap_to_grid(x_goal)    # goal state
 
         self.closed_set = []    # the set containing the states that have been visited
-        self.open_set = []      # the set containing the states that are condidate for future expension
+        self.open_set = []      # the set containing the states that are candidates for future expension
 
         self.f_score = {}       # dictionary of the f score (estimated cost from start to goal passing through state)
         self.g_score = {}       # dictionary of the g score (cost-to-go from start to state)
@@ -26,7 +26,7 @@ class AStar(object):
 
         self.path = None        # the final path as a list of states
 
-    # Checks if a give state is free, meaning it is inside the bounds of the map and
+    # Checks if a given state is free, meaning it is inside the bounds of the map and
     # is not inside any obstacle
     # INPUT: (x)
     #          x - tuple state
@@ -72,7 +72,14 @@ class AStar(object):
     #           x - tuple state
     # OUTPUT: List of neighbors that are free, as a list of TUPLES
     def get_neighbors(self, x):
-        # TODO: fill me in!
+        d_step = np.sqrt(0.5*self.resolution)  # diagonal step so 2*d_step^2 = self.resolution
+        neighbors = [(x[0], x[1] + self.resolution), (x[0], x[1] - self.resolution),  # up, down
+                     (x[0] - self.resolution, x[1]), (x[0] + self.resolution, x[1]),  # left, right
+                     (x[0] - d_step, x[1] + d_step), (x[0] + d_step, x[1] + d_step),  # northwest, northeast
+                     (x[0] - d_step, x[1] - d_step), (x[0] + d_step, x[1] - d_step)]  # southwest, southeast
+        neighbors = [self.snap_to_grid(n) for n in neighbors]
+        neighbors = [n for n in neighbors if self.is_free(n)]
+        return neighbors
 
     # Gets the state in open_set that has the lowest f_score
     # INPUT: None
@@ -120,7 +127,26 @@ class AStar(object):
     # OUTPUT: Boolean, True if a solution from x_init to x_goal was found
     def solve(self):
         while len(self.open_set)>0:
-            # TODO: fill me in!
+            x_current = self.find_best_f_score()
+            if x_current == self.x_goal:
+                self.path = self.reconstruct_path()
+                return True
+            self.open_set.remove(x_current)
+            self.closed_set.append(x_current)
+
+            for x_neigh in self.get_neighbors(x_current):
+                if x_neigh in self.closed_set:
+                    continue
+                
+                tentative_g_score = self.g_score[x_current] + self.distance(x_current, x_neigh)
+                if x_neigh not in self.open_set:
+                    self.open_set.append(x_neigh)
+                elif tentative_g_score > self.g_score[x_neigh]:
+                    continue
+
+                self.came_from[x_neigh] = x_current
+                self.g_score[x_neigh] = tentative_g_score
+                self.f_score[x_neigh] = tentative_g_score + self.distance(x_neigh, x_goal)
 
         return False
 
