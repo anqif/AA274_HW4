@@ -69,12 +69,31 @@ class RRT(object):
         ## Intermediate Outputs
         # You must update and/or populate:
         #    - V, P, n: the represention of the planning tree
-        #    - succcess: whether or not you've found a solution within max_iters RRT iterations
+        #    - success: whether or not you've found a solution within max_iters RRT iterations
         #    - solution_path: if success is True, then must contain list of states (tree nodes)
         #          [x_init, ..., x_goal] such that the global trajectory made by linking steering
         #          trajectories connecting the states in order is obstacle-free.
 
-        # TODO: fill me in!
+        success = False
+        for k in range(max_iters):
+            z = np.random.random_sample()
+            if z < goal_bias:
+                x_rand = self.x_goal
+            else:
+                x_rand = np.array([np.random.uniform(lo, hi) for lo, hi in zip(self.statespace_lo, self.statespace_hi)])
+            idx_near = self.find_nearest(V[:n,:], x_rand)
+            x_near = V[idx_near,:]
+            x_new = self.steer_towards(x_near, x_rand, eps)
+
+            if self.is_free_motion(self.obstacles, x_near, x_new):
+                V[n,:] = x_new
+                P[n] = idx_near
+                n = n + 1
+
+                if np.array_equal(x_new, self.x_goal):
+                    success = True
+                    # TODO: Reconstruct solution_path = [V[idx,:] for idx in P[1:n]]
+                    break
 
         plt.figure()
         plot_line_segments(self.obstacles, color="red", linewidth=2, label="obstacles")
@@ -92,11 +111,19 @@ class RRT(object):
 # straight line (Euclidean metric)
 class GeometricRRT(RRT):
 
+    def distance(self, x1, x2):
+        return np.linalg.norm(x1 - x2)
+
     def find_nearest(self, V, x):
-        # TODO: fill me in!
+        Vx_dist = np.apply_along_axis(self.distance, 1, V, x)
+        return np.argmin(Vx_dist)
 
     def steer_towards(self, x, y, eps):
-        # TODO: fill me in!
+        if self.distance(x, y) < eps:
+            return y
+        else:
+            theta = np.arctan2(y[1] - x[1], y[0] - x[0])
+            return np.array([x[0] + eps*np.cos(theta), x[1] + eps*np.sin(theta)])
 
     def is_free_motion(self, obstacles, x1, x2):
         motion = np.array([x1, x2])
@@ -126,16 +153,23 @@ class DubinsRRT(RRT):
         self.turning_radius = turning_radius
         super(self.__class__, self).__init__(statespace_lo, statespace_hi, x_init, x_goal, obstacles)
 
+    def distance(self, x1, x2):
+        path_length(x1, x2, self.turning_radius)
+
     def find_nearest(self, V, x):
-        # TODO: fill me in!
+        Vx_dist = np.apply_along_axis(self.distance, 1, V, x)
+        return np.argmin(Vx_dist)
 
     def steer_towards(self, x, y, eps):
-        # TODO: fill me in!
         # A subtle issue: if you use dubins.path_sample to return the point at distance
         # eps along the path from x to y, use a turning radius slightly larger than
         # self.turning_radius (i.e., 1.001*self.turning_radius). Without this hack,
         # dubins.path_sample might return a point that you can't quite get to in distance
         # eps (using self.turning_radius) due to numerical precision issues.
+        if self.distance(x, y) < eps:
+            return y
+        else:
+            return path_sample(x, y, 1.001*self.turning_radius, eps)
 
     def is_free_motion(self, obstacles, x1, x2, resolution = np.pi/6):
         pts = path_sample(x1, x2, self.turning_radius, self.turning_radius*resolution)[0]
