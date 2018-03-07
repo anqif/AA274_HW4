@@ -199,10 +199,10 @@ class DubinsRRT(RRT):
                     line_segments.append((pts[j], pts[j+1]))
         plot_line_segments(line_segments, **kwargs)
 
-    def plot_path(self, V, resolution = np.pi/24, **kwargs):
+    def plot_path(self, path, resolution = np.pi/24, **kwargs):
         pts = []
-        for i in range(V.shape[0] - 1):
-            pts.extend(path_sample(V[i], V[i+1], self.turning_radius, self.turning_radius*resolution)[0])
+        for i in range(len(path) - 1):
+            pts.extend(path_sample(path[i], path[i+1], self.turning_radius, self.turning_radius*resolution)[0])
         plt.plot([x for x, y, th in pts], [y for x, y, th in pts], **kwargs)
 
 ### TESTING
