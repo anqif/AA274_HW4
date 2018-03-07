@@ -162,7 +162,7 @@ class DubinsRRT(RRT):
         super(self.__class__, self).__init__(statespace_lo, statespace_hi, x_init, x_goal, obstacles)
 
     def distance(self, x1, x2):
-        path_length(x1, x2, self.turning_radius)
+        return path_length(x1, x2, self.turning_radius)
 
     def find_nearest(self, V, x):
         Vx_dist = np.apply_along_axis(self.distance, 1, V, x)
@@ -177,7 +177,8 @@ class DubinsRRT(RRT):
         if self.distance(x, y) < eps:
             return y
         else:
-            return path_sample(x, y, 1.001*self.turning_radius, eps)
+            path = path_sample(x, y, 1.001*self.turning_radius, eps)
+            return np.array(path[0][1])
 
     def is_free_motion(self, obstacles, x1, x2, resolution = np.pi/6):
         pts = path_sample(x1, x2, self.turning_radius, self.turning_radius*resolution)[0]
