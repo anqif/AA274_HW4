@@ -76,6 +76,7 @@ class RRT(object):
 
         success = False
         for k in range(max_iters):
+            # Steer towards random state with probability (1 - goal_bias).
             z = np.random.random_sample()
             if z < goal_bias:
                 x_rand = self.x_goal
@@ -85,14 +86,21 @@ class RRT(object):
             x_near = V[idx_near,:]
             x_new = self.steer_towards(x_near, x_rand, eps)
 
+            # Add to RRT if path from x_near to x_new is collision-free.
             if self.is_free_motion(self.obstacles, x_near, x_new):
                 V[n,:] = x_new
                 P[n] = idx_near
                 n = n + 1
 
+                # Reconstruct solution path when goal reached.
                 if np.array_equal(x_new, self.x_goal):
+                    idx_cur = n - 1
+                    solution_path = [self.x_goal]
+                    while not np.array_equal(V[idx_cur,:], self.x_init):
+                        solution_path.append(V[P[idx_cur],:])
+                        idx_cur = P[idx_cur]
+                    solution_path = list(reversed(solution_path))
                     success = True
-                    # TODO: Reconstruct solution_path = [V[idx,:] for idx in P[1:n]]
                     break
 
         plt.figure()
