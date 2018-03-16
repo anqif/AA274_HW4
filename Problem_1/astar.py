@@ -146,7 +146,7 @@ class AStar(object):
 
                 self.came_from[x_neigh] = x_current
                 self.g_score[x_neigh] = tentative_g_score
-                self.f_score[x_neigh] = tentative_g_score + self.distance(x_neigh, x_goal)
+                self.f_score[x_neigh] = tentative_g_score + self.distance(x_neigh, self.x_goal)
 
         return False
 
